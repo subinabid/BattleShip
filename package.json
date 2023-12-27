@@ -4,7 +4,8 @@
   "description": "Battleship Game",
   "main": "index.js",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "start": "ts-node --transpile-only src/index.ts"
   },
   "keywords": [
     "battleship"
