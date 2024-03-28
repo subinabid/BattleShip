@@ -6,17 +6,44 @@ export interface Position {
   x: Row;
   y: Column;
 }
+
+// List of ships as list of objects for iteration
+export const ships = [
+  { name: "Carrier", length: 5 },
+  { name: "Battleship", length: 4 },
+  { name: "Submarine", length: 3 },
+  { name: "Cruiser", length: 3 },
+  { name: "Destroyer", length: 2 },
+] as const;
+
+type ShipType = (typeof ships)[number];
+type ShipName = ShipType["name"];
+
+export class Ship {
+  shipType: ShipType;
+  cells: Array<{ position: Position; state: ShipCellState }>;
+
+  constructor(shipType: ShipType, start: Position, direction: Direction) {
+    this.shipType = shipType;
+    this.cells = validatePosition(start, direction, shipType.length).map(
+      (position) => ({ position, state: "Healthy" })
+    );
+  }
+}
+
 type ShipCellState = "Healthy" | "Hit";
 type GridState = "Empty" | "Miss" | Ship;
 
 export type Request = {
   position: Position;
-  // Board or GameID eventually
 };
 
 export type Response = "Miss" | "Hit" | "Sunk";
 
-const validatePosition = (
+// Validate ship position
+// Returns the cells occupied by the ship as an array of positions, if the ship is within bounds
+// Throws an error if the ship is out of bounds
+export const validatePosition = (
   { x, y }: Position, // start
   direction: Direction,
   length: number
@@ -47,24 +74,58 @@ const validatePosition = (
   return positions;
 };
 
-type ShipType =
-  | { name: "Carrier"; length: 5 }
-  | { name: "Battleship"; length: 4 }
-  | { name: "Submarine"; length: 3 }
-  | { name: "Cruiser"; length: 3 }
-  | { name: "Destroyer"; length: 2 };
-
-export class Ship {
-  shipType: ShipType;
-  cells: Array<{ position: Position; state: ShipCellState }>;
-
-  constructor(shipType: ShipType, start: Position, direction: Direction) {
-    this.shipType = shipType;
-    this.cells = validatePosition(start, direction, shipType.length).map(
-      (position) => ({ position, state: "Healthy" })
-    );
-  }
+export interface InitMessage {
+  type: "Init";
+  ships: Array<{
+    name: ShipName;
+    start: Position;
+    direction: Direction;
+  }>;
 }
+
+export type AttackMessage = unknown;
+export type Message = InitMessage | AttackMessage;
+
+export const parse = (input: string): Message => {
+  const message: unknown = JSON.parse(input);
+  if (
+    typeof message == "object" &&
+    message &&
+    "type" in message &&
+    message.type === "Init" &&
+    "ships" in message &&
+    Array.isArray(message.ships) &&
+    message.ships.length === 5
+  ) {
+    message.ships.forEach((ship: unknown) => {
+      if (
+        typeof ship == "object" &&
+        ship &&
+        "name" in ship &&
+        "start" in ship &&
+        "direction" in ship
+      ) {
+        const { name, start, direction } = ship;
+        if (
+          typeof name === "string" &&
+          typeof start === "object" &&
+          start &&
+          "x" in start &&
+          "y" in start &&
+          typeof direction === "string" &&
+          (direction === "Horizontal" || direction === "Vertical")
+        ) {
+          return {
+            type: "Init",
+            ships: message.ships,
+          };
+        }
+      }
+    });
+  }
+
+  return message;
+};
 
 // Gameboard
 export class Gameboard {
@@ -127,7 +188,7 @@ export const columntoIndex = (c: Column): number => c - 1;
 //   gb.theirBoard[rowToIndex(x)][columntoIndex(y)] = op;
 // };
 
-// Uopdate their board after Attack
+// Update their board after Attack
 export const updateBoardAfterAttack = (
   gb: Gameboard,
   { x, y }: Position,
