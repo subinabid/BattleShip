@@ -3,11 +3,12 @@ export type Row = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J";
 export type Column = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 export type Direction = "Horizontal" | "Vertical";
 export interface Position {
+  // A cell
   x: Row;
   y: Column;
 }
 
-// List of ships as list of objects for iteration
+// List of ships as iterable
 export const ships = [
   { name: "Carrier", length: 5 },
   { name: "Battleship", length: 4 },
@@ -18,6 +19,8 @@ export const ships = [
 
 type ShipType = (typeof ships)[number];
 type ShipName = ShipType["name"];
+type ShipCellState = "Healthy" | "Hit"; // Possible states of a ship cell
+type GridState = "Empty" | "Miss" | Ship; // Possible states of a grid cell
 
 export class Ship {
   shipType: ShipType;
@@ -30,9 +33,6 @@ export class Ship {
     );
   }
 }
-
-type ShipCellState = "Healthy" | "Hit";
-type GridState = "Empty" | "Miss" | Ship;
 
 export type Request = {
   position: Position;
